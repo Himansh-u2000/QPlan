@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { getAuth, signOut } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, Shield } from "lucide-react";
+import Link from "next/link";
 
 const auth = getAuth(app);
 
@@ -19,10 +20,18 @@ export default function Header() {
   return (
     <header className="flex items-center justify-between p-4 border-b bg-card shadow-sm">
       <h1 className="text-2xl font-bold text-primary font-headline">NexusFlow</h1>
-      <Button variant="ghost" size="sm" onClick={handleLogout}>
-        <LogOut className="mr-2 h-4 w-4" />
-        Logout
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/admin">
+            <Shield className="mr-2 h-4 w-4" />
+            Admin
+          </Link>
+        </Button>
+        <Button variant="ghost" size="sm" onClick={handleLogout}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Logout
+        </Button>
+      </div>
     </header>
   );
 }
