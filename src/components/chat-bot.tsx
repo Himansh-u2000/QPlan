@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
 import { answerQuestionsAboutNexusFlow } from "@/ai/flows/answer-questions-about-nexusflow";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -81,7 +81,7 @@ function SubmitButton() {
 }
 
 export default function ChatBot() {
-  const [state, formAction] = useFormState(chatAction, initialState);
+  const [state, formAction] = React.useActionState(chatAction, initialState);
   const formRef = React.useRef<HTMLFormElement>(null);
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
 
