@@ -323,7 +323,7 @@ export default function AdminPage() {
                 </Form>
                 <div className="mt-6 space-y-2">
                     <h4 className="font-medium">Current Events</h4>
-                    {events.map(event => (
+                    {events.length > 0 ? events.map(event => (
                         <div key={event.id} className="flex justify-between items-center p-2 rounded-md border">
                             <span>{event.title}</span>
                             <Button variant="ghost" size="icon" onClick={() => handleDeleteEvent(event.id)}>
@@ -331,7 +331,7 @@ export default function AdminPage() {
                                 <span className="sr-only">Delete Event</span>
                             </Button>
                         </div>
-                    ))}
+                    )) : <p className="text-sm text-muted-foreground">No events found.</p>}
                 </div>
               </CardContent>
             </Card>
@@ -366,7 +366,7 @@ export default function AdminPage() {
                 </Form>
                  <div className="mt-6 space-y-4">
                     <h4 className="font-medium">Current Resources</h4>
-                    {resources.map(resource => (
+                    {resources.length > 0 ? resources.map(resource => (
                         <div key={resource.id} className="flex justify-between items-center p-3 rounded-md border">
                             <div>
                                 <p className="font-semibold">{resource.name}</p>
@@ -383,7 +383,7 @@ export default function AdminPage() {
                                 </Label>
                             </div>
                         </div>
-                    ))}
+                    )) : <p className="text-sm text-muted-foreground">No resources found.</p>}
                 </div>
               </CardContent>
             </Card>
