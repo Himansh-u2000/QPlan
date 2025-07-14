@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, PlusCircle, Check, X } from "lucide-react";
+import { CalendarIcon, PlusCircle, Check, X, ShieldAlert, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 
@@ -47,8 +47,11 @@ import Header from "@/components/header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import Link from "next/link";
 
 const auth = getAuth(app);
+
+const ADMIN_EMAIL = "admin@example.com"; // The designated admin user
 
 const eventFormSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters."),
@@ -91,6 +94,7 @@ export default function AdminPage() {
   const { toast } = useToast();
   const [user, setUser] = React.useState<User | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [isAuthorized, setIsAuthorized] = React.useState(false);
 
   // Mock state for data
   const [events, setEvents] = React.useState(MOCK_EVENTS);
@@ -101,6 +105,11 @@ export default function AdminPage() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUser(user);
+        if (user.email === ADMIN_EMAIL) {
+          setIsAuthorized(true);
+        } else {
+          setIsAuthorized(false);
+        }
       } else {
         router.push("/login");
       }
@@ -181,7 +190,35 @@ export default function AdminPage() {
   }
 
   if (!user) {
-    return null;
+    return null; // Should be redirected
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background">
+        <Header />
+        <main className="flex-1 flex items-center justify-center p-4">
+            <Card className="max-w-md w-full text-center">
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-center gap-2">
+                        <ShieldAlert className="h-8 w-8 text-destructive" />
+                        Access Denied
+                    </CardTitle>
+                    <CardDescription>You are not authorized to view this page.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                        Please sign in with an administrator account. The email for the admin account is{" "}
+                        <code className="bg-muted px-1.5 py-1 rounded-sm text-foreground">admin@example.com</code>.
+                    </p>
+                    <Button asChild className="mt-6">
+                        <Link href="/">Return to Dashboard</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        </main>
+      </div>
+    )
   }
 
   return (
@@ -264,6 +301,7 @@ export default function AdminPage() {
                         <div key={event.id} className="flex justify-between items-center p-2 rounded-md border">
                             <span>{event.title}</span>
                             <Button variant="ghost" size="icon" onClick={() => deleteEvent(event.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
                                 <span className="sr-only">Delete Event</span>
                             </Button>
                         </div>
