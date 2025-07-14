@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { getAuth, signOut } from "firebase/auth";
+import { app } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+
+const auth = getAuth(app);
 
 export default function Header() {
   const router = useRouter();

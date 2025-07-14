@@ -2,14 +2,16 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/firebase";
-import { onAuthStateChanged, User } from "firebase/auth";
+import { getAuth, onAuthStateChanged, User } from "firebase/auth";
+import { app } from "@/lib/firebase"; // Import the initialized app
 
 import { Skeleton } from "@/components/ui/skeleton";
 import Header from "@/components/header";
 import EventCalendar from "@/components/event-calendar";
 import ResourceList from "@/components/resource-list";
 import ChatBot from "@/components/chat-bot";
+
+const auth = getAuth(app);
 
 export default function DashboardPage() {
   const router = useRouter();
