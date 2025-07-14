@@ -1,4 +1,6 @@
-import { List } from "lucide-react";
+"use client";
+
+import { List, Send } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -14,16 +16,30 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
+// This would typically come from a database or a state management solution
 const resources = [
-  { name: "Quantum Rig A-1", status: "Available", location: "Lab 3" },
-  { name: "Supercomputer Cygnus", status: "Unavailable", location: "Data Center" },
-  { name: "VR/AR Development Kit", status: "Available", location: "Innovation Hub" },
-  { name: "High-Res 3D Printer", status: "Available", location: "Maker Space" },
-  { name: "Bio-Sequencer Z-9", status: "Unavailable", location: "BioLab 1" },
+  { id: 1, name: "Quantum Rig A-1", status: "Available" as const, location: "Lab 3" },
+  { id: 2, name: "Supercomputer Cygnus", status: "Unavailable" as const, location: "Data Center" },
+  { id: 3, name: "VR/AR Development Kit", status: "Available" as const, location: "Innovation Hub" },
+  { id: 4, name: "High-Res 3D Printer", status: "Available" as const, location: "Maker Space" },
+  { id: 5, name: "Bio-Sequencer Z-9", status: "Unavailable" as const, location: "BioLab 1" },
 ];
 
 export default function ResourceList() {
+    const { toast } = useToast();
+
+    const handleRequest = (resourceName: string) => {
+        // In a real app, this would trigger a backend process.
+        // For now, we just show a confirmation toast.
+        toast({
+            title: "Request Sent",
+            description: `Your request for ${resourceName} has been sent to the admin.`,
+        });
+    }
+
   return (
     <Card>
       <CardHeader>
@@ -39,11 +55,12 @@ export default function ResourceList() {
               <TableHead>Resource</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Location</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {resources.map((resource) => (
-              <TableRow key={resource.name}>
+              <TableRow key={resource.id}>
                 <TableCell className="font-medium">{resource.name}</TableCell>
                 <TableCell>
                   <Badge
@@ -54,6 +71,17 @@ export default function ResourceList() {
                   </Badge>
                 </TableCell>
                 <TableCell>{resource.location}</TableCell>
+                <TableCell className="text-right">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        disabled={resource.status !== 'Available'}
+                        onClick={() => handleRequest(resource.name)}
+                    >
+                        <Send className="mr-2 h-4 w-4" />
+                        Request
+                    </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

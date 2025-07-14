@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, PlusCircle, Trash2 } from "lucide-react";
+import { CalendarIcon, PlusCircle, Check, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 
@@ -23,7 +23,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -46,6 +45,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const auth = getAuth(app);
 
@@ -63,6 +64,8 @@ const resourceFormSchema = z.object({
 
 type EventFormValues = z.infer<typeof eventFormSchema>;
 type ResourceFormValues = z.infer<typeof resourceFormSchema>;
+type Resource = { id: number; name: string; location: string; status: "Available" | "Unavailable" };
+type ResourceRequest = { id: number; resourceName: string; userName: string; resourceId: number; };
 
 // Mock data - in a real app, this would come from a database
 const MOCK_EVENTS = [
@@ -71,11 +74,17 @@ const MOCK_EVENTS = [
     { id: 3, title: "Web3 Developer Meetup", description: "Networking and talks on decentralized applications.", date: new Date(new Date().setDate(new Date().getDate() + 15)) },
 ];
 
-const MOCK_RESOURCES = [
-  { id: 1, name: "Quantum Rig A-1", location: "Lab 3", status: "Available" as const },
-  { id: 2, name: "Supercomputer Cygnus", location: "Data Center", status: "Unavailable" as const },
-  { id: 3, name: "VR/AR Development Kit", location: "Innovation Hub", status: "Available" as const },
+const MOCK_RESOURCES: Resource[] = [
+  { id: 1, name: "Quantum Rig A-1", location: "Lab 3", status: "Available" },
+  { id: 2, name: "Supercomputer Cygnus", location: "Data Center", status: "Unavailable" },
+  { id: 3, name: "VR/AR Development Kit", location: "Innovation Hub", status: "Available" },
 ];
+
+const MOCK_REQUESTS: ResourceRequest[] = [
+    { id: 1, resourceName: "Quantum Rig A-1", userName: "alex@example.com", resourceId: 1 },
+    { id: 2, resourceName: "VR/AR Development Kit", userName: "sara@example.com", resourceId: 3 },
+];
+
 
 export default function AdminPage() {
   const router = useRouter();
@@ -85,7 +94,8 @@ export default function AdminPage() {
 
   // Mock state for data
   const [events, setEvents] = React.useState(MOCK_EVENTS);
-  const [resources, setResources] = React.useState(MOCK_RESOURCES);
+  const [resources, setResources] = React.useState<Resource[]>(MOCK_RESOURCES);
+  const [requests, setRequests] = React.useState<ResourceRequest[]>(MOCK_REQUESTS);
 
   React.useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -134,10 +144,24 @@ export default function AdminPage() {
     toast({ title: "Event Deleted" });
   }
 
-  function deleteResource(id: number) {
-    setResources(resources.filter(r => r.id !== id));
-    toast({ title: "Resource Deleted" });
-  }
+  const handleResourceStatusChange = (resourceId: number, newStatus: boolean) => {
+    setResources(currentResources => 
+      currentResources.map(r => 
+        r.id === resourceId ? { ...r, status: newStatus ? "Available" : "Unavailable" } : r
+      )
+    );
+  };
+  
+  const handleRequest = (requestId: number, resourceId: number, approve: boolean) => {
+    setRequests(currentRequests => currentRequests.filter(req => req.id !== requestId));
+    if (approve) {
+      handleResourceStatusChange(resourceId, false); // Make unavailable
+      toast({ title: "Request Approved", description: "The resource has been assigned."});
+    } else {
+      toast({ title: "Request Denied" });
+    }
+  };
+
 
   if (loading) {
     return (
@@ -164,11 +188,40 @@ export default function AdminPage() {
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-1 p-4 md:p-8">
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="max-w-6xl mx-auto space-y-8">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Admin Panel</h1>
             <p className="text-muted-foreground">Manage your events and resources here.</p>
           </div>
+
+            {/* Resource Requests Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Resource Requests</CardTitle>
+                <CardDescription>Approve or deny user requests for resources.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {requests.length > 0 ? requests.map(req => (
+                    <div key={req.id} className="flex justify-between items-center p-3 rounded-md border bg-card">
+                        <div>
+                            <p className="font-semibold">{req.resourceName}</p>
+                            <p className="text-sm text-muted-foreground">Requested by: {req.userName}</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button size="sm" variant="outline" onClick={() => handleRequest(req.id, req.resourceId, true)}>
+                                <Check className="mr-2 h-4 w-4"/> Approve
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleRequest(req.id, req.resourceId, false)}>
+                                <X className="mr-2 h-4 w-4"/> Deny
+                            </Button>
+                        </div>
+                    </div>
+                )) : (
+                    <p className="text-sm text-muted-foreground text-center p-4">No pending resource requests.</p>
+                )}
+              </CardContent>
+            </Card>
+
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             {/* Events Section */}
@@ -210,7 +263,9 @@ export default function AdminPage() {
                     {events.map(event => (
                         <div key={event.id} className="flex justify-between items-center p-2 rounded-md border">
                             <span>{event.title}</span>
-                            <Button variant="ghost" size="icon" onClick={() => deleteEvent(event.id)}><Trash2 className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => deleteEvent(event.id)}>
+                                <span className="sr-only">Delete Event</span>
+                            </Button>
                         </div>
                     ))}
                 </div>
@@ -246,12 +301,24 @@ export default function AdminPage() {
                     <Button type="submit"><PlusCircle className="mr-2 h-4 w-4" /> Add Resource</Button>
                   </form>
                 </Form>
-                 <div className="mt-6 space-y-2">
+                 <div className="mt-6 space-y-4">
                     <h4 className="font-medium">Current Resources</h4>
                     {resources.map(resource => (
-                        <div key={resource.id} className="flex justify-between items-center p-2 rounded-md border">
-                            <span>{resource.name}</span>
-                            <Button variant="ghost" size="icon" onClick={() => deleteResource(resource.id)}><Trash2 className="h-4 w-4" /></Button>
+                        <div key={resource.id} className="flex justify-between items-center p-3 rounded-md border">
+                            <div>
+                                <p className="font-semibold">{resource.name}</p>
+                                <p className="text-sm text-muted-foreground">{resource.location}</p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Switch 
+                                    id={`resource-status-${resource.id}`}
+                                    checked={resource.status === 'Available'}
+                                    onCheckedChange={(checked) => handleResourceStatusChange(resource.id, checked)}
+                                />
+                                <Label htmlFor={`resource-status-${resource.id}`} className={cn("text-sm", resource.status === 'Available' ? "text-green-600" : "text-red-600")}>
+                                    {resource.status}
+                                </Label>
+                            </div>
                         </div>
                     ))}
                 </div>
