@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useFormStatus } from "react-dom";
+import { useFormStatus, useActionState } from "react-dom";
 import { answerQuestionsAboutNexusFlow } from "@/ai/flows/answer-questions-about-nexusflow";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,14 +10,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, Bot, User, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Event, Resource } from "@/lib/firebase-service";
 
 type Message = {
   role: "user" | "bot";
   content: string;
 };
-
-type Event = { id: number; title: string; description: string; date: Date };
-type Resource = { id: number; name: string; location: string; status: "Available" | "Unavailable" };
 
 type ChatBotProps = {
     events: Event[];
@@ -46,7 +44,6 @@ export default function ChatBot({ events, resources }: ChatBotProps) {
         const userMessage: Message = { role: "user", content: question };
         const newMessages = [...state.messages, userMessage];
 
-        // Dynamically create the context for the AI
         const eventDetails = events.map(e => `- Event: ${e.title}, Date: ${e.date.toDateString()}, Description: ${e.description}`).join('\n');
         const resourceStatus = resources.map(r => `- Resource: ${r.name}, Status: ${r.status}, Location: ${r.location}`).join('\n');
 
@@ -69,7 +66,7 @@ export default function ChatBot({ events, resources }: ChatBotProps) {
         }
     }
 
-  const [state, formAction] = React.useActionState(chatAction, initialState);
+  const [state, formAction] = useActionState(chatAction, initialState);
   const formRef = React.useRef<HTMLFormElement>(null);
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
 

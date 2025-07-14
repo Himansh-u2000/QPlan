@@ -7,9 +7,23 @@ import * as z from "zod";
 import { format } from "date-fns";
 import { CalendarIcon, PlusCircle, Check, X, ShieldAlert, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { getAuth, onAuthStateChanged, User } from "firebase/auth";
+import { onAuthStateChanged, User } from "firebase/auth";
 
-import { app } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
+import { 
+  addEvent, 
+  addResource, 
+  deleteEvent, 
+  updateResourceStatus,
+  getEvents,
+  getResources,
+  getResourceRequests,
+  approveResourceRequest,
+  denyResourceRequest,
+  Event,
+  Resource,
+  ResourceRequest
+} from "@/lib/firebase-service";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -49,9 +63,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 
-const auth = getAuth(app);
-
-const ADMIN_EMAIL = "admin@example.com"; // The designated admin user
+const ADMIN_EMAIL = "admin@example.com";
 
 const eventFormSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters."),
@@ -67,30 +79,6 @@ const resourceFormSchema = z.object({
 
 type EventFormValues = z.infer<typeof eventFormSchema>;
 type ResourceFormValues = z.infer<typeof resourceFormSchema>;
-type Event = { id: number; title: string; description: string; date: Date };
-type Resource = { id: number; name: string; location: string; status: "Available" | "Unavailable" };
-type ResourceRequest = { id: number; resourceName: string; userName: string; resourceId: number; };
-
-// Mock data - in a real app, this would come from a database
-const MOCK_EVENTS: Event[] = [
-    { id: 1, title: "AI & The Future of Work", description: "A seminar on the impact of AI on various industries.", date: new Date(new Date().setDate(new Date().getDate() + 2)) },
-    { id: 2, title: "Quantum Computing Symposium", description: "Deep dive into quantum algorithms and hardware.", date: new Date(new Date().setDate(new Date().getDate() + 7)) },
-    { id: 3, title: "Web3 Developer Meetup", description: "Networking and talks on decentralized applications.", date: new Date(new Date().setDate(new Date().getDate() + 15)) },
-];
-
-const MOCK_RESOURCES: Resource[] = [
-  { id: 1, name: "Quantum Rig A-1", location: "Lab 3", status: "Available" },
-  { id: 2, name: "Supercomputer Cygnus", location: "Data Center", status: "Unavailable" },
-  { id: 3, name: "VR/AR Development Kit", location: "Innovation Hub", status: "Available" },
-  { id: 4, name: "High-Res 3D Printer", location: "Maker Space", status: "Available" },
-  { id: 5, name: "Bio-Sequencer Z-9", location: "BioLab 1", status: "Unavailable" },
-];
-
-const MOCK_REQUESTS: ResourceRequest[] = [
-    { id: 1, resourceName: "Quantum Rig A-1", userName: "alex@example.com", resourceId: 1 },
-    { id: 2, resourceName: "VR/AR Development Kit", userName: "sara@example.com", resourceId: 3 },
-];
-
 
 export default function AdminPage() {
   const router = useRouter();
@@ -99,10 +87,9 @@ export default function AdminPage() {
   const [loading, setLoading] = React.useState(true);
   const [isAuthorized, setIsAuthorized] = React.useState(false);
 
-  // Using a single source of truth for mock data, managed by this component's state
-  const [events, setEvents] = React.useState<Event[]>(MOCK_EVENTS);
-  const [resources, setResources] = React.useState<Resource[]>(MOCK_RESOURCES);
-  const [requests, setRequests] = React.useState<ResourceRequest[]>(MOCK_REQUESTS);
+  const [events, setEvents] = React.useState<Event[]>([]);
+  const [resources, setResources] = React.useState<Resource[]>([]);
+  const [requests, setRequests] = React.useState<ResourceRequest[]>([]);
 
   React.useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -110,9 +97,9 @@ export default function AdminPage() {
         setUser(user);
         if (user.email === ADMIN_EMAIL) {
           setIsAuthorized(true);
+          fetchData();
         } else {
           setIsAuthorized(false);
-          // Non-admin users are not necessarily redirected, they see an "Access Denied" message.
         }
       } else {
         router.push("/login");
@@ -121,6 +108,26 @@ export default function AdminPage() {
     });
     return () => unsubscribe();
   }, [router]);
+
+  const fetchData = async () => {
+    try {
+      const [eventsData, resourcesData, requestsData] = await Promise.all([
+        getEvents(),
+        getResources(),
+        getResourceRequests()
+      ]);
+      setEvents(eventsData);
+      setResources(resourcesData);
+      setRequests(requestsData);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to load data",
+        description: "Could not fetch data from the database."
+      });
+      console.error(error);
+    }
+  };
 
   const eventForm = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -132,49 +139,67 @@ export default function AdminPage() {
     defaultValues: { name: "", location: "", status: "Available" },
   });
 
-  function onEventSubmit(data: EventFormValues) {
-    const newEvent = { ...data, id: Date.now() };
-    setEvents(prev => [...prev, newEvent]);
-    toast({
-      title: "Event Created!",
-      description: `The event "${data.title}" has been added.`,
-    });
-    eventForm.reset();
+  async function onEventSubmit(data: EventFormValues) {
+    try {
+      await addEvent(data);
+      toast({
+        title: "Event Created!",
+        description: `The event "${data.title}" has been added.`,
+      });
+      eventForm.reset();
+      fetchData(); // Refresh data
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Could not create event." });
+    }
   }
 
-  function onResourceSubmit(data: ResourceFormValues) {
-    const newResource = { ...data, id: Date.now() };
-    setResources(prev => [...prev, newResource]);
-    toast({
-      title: "Resource Created!",
-      description: `The resource "${data.name}" has been added.`,
-    });
-    resourceForm.reset();
+  async function onResourceSubmit(data: ResourceFormValues) {
+    try {
+      await addResource(data);
+      toast({
+        title: "Resource Created!",
+        description: `The resource "${data.name}" has been added.`,
+      });
+      resourceForm.reset();
+      fetchData(); // Refresh data
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Could not create resource." });
+    }
   }
   
-  function deleteEvent(id: number) {
-    setEvents(events.filter(e => e.id !== id));
-    toast({ title: "Event Deleted" });
+  async function handleDeleteEvent(id: string) {
+    try {
+      await deleteEvent(id);
+      toast({ title: "Event Deleted" });
+      fetchData(); // Refresh data
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Could not delete event." });
+    }
   }
 
-  const handleResourceStatusChange = (resourceId: number, newStatus: boolean) => {
-    setResources(currentResources => 
-      currentResources.map(r => 
-        r.id === resourceId ? { ...r, status: newStatus ? "Available" : "Unavailable" } : r
-      )
-    );
-  };
-  
-  const handleRequest = (requestId: number, resourceId: number, approve: boolean) => {
-    setRequests(currentRequests => currentRequests.filter(req => req.id !== requestId));
-    if (approve) {
-      handleResourceStatusChange(resourceId, false); // Make unavailable
-      toast({ title: "Request Approved", description: "The resource has been assigned."});
-    } else {
-      toast({ title: "Request Denied" });
+  const handleResourceStatusChange = async (resourceId: string, newStatus: boolean) => {
+    try {
+      await updateResourceStatus(resourceId, newStatus ? "Available" : "Unavailable");
+      fetchData(); // Refresh data
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Could not update resource status." });
     }
   };
-
+  
+  const handleRequest = async (requestId: string, resourceId: string, approve: boolean) => {
+    try {
+      if (approve) {
+        await approveResourceRequest(requestId, resourceId);
+        toast({ title: "Request Approved", description: "The resource has been assigned."});
+      } else {
+        await denyResourceRequest(requestId);
+        toast({ title: "Request Denied" });
+      }
+      fetchData(); // Refresh data
+    } catch(error) {
+      toast({ variant: "destructive", title: "Error", description: "Could not process request." });
+    }
+  };
 
   if (loading) {
     return (
@@ -235,7 +260,6 @@ export default function AdminPage() {
             <p className="text-muted-foreground">Manage your events and resources here.</p>
           </div>
 
-            {/* Resource Requests Section */}
             <Card>
               <CardHeader>
                 <CardTitle>Resource Requests</CardTitle>
@@ -263,9 +287,7 @@ export default function AdminPage() {
               </CardContent>
             </Card>
 
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            {/* Events Section */}
             <Card>
               <CardHeader>
                 <CardTitle>Manage Events</CardTitle>
@@ -304,7 +326,7 @@ export default function AdminPage() {
                     {events.map(event => (
                         <div key={event.id} className="flex justify-between items-center p-2 rounded-md border">
                             <span>{event.title}</span>
-                            <Button variant="ghost" size="icon" onClick={() => deleteEvent(event.id)}>
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteEvent(event.id)}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
                                 <span className="sr-only">Delete Event</span>
                             </Button>
@@ -314,7 +336,6 @@ export default function AdminPage() {
               </CardContent>
             </Card>
 
-            {/* Resources Section */}
             <Card>
               <CardHeader>
                 <CardTitle>Manage Resources</CardTitle>
