@@ -67,11 +67,12 @@ const resourceFormSchema = z.object({
 
 type EventFormValues = z.infer<typeof eventFormSchema>;
 type ResourceFormValues = z.infer<typeof resourceFormSchema>;
+type Event = { id: number; title: string; description: string; date: Date };
 type Resource = { id: number; name: string; location: string; status: "Available" | "Unavailable" };
 type ResourceRequest = { id: number; resourceName: string; userName: string; resourceId: number; };
 
 // Mock data - in a real app, this would come from a database
-const MOCK_EVENTS = [
+const MOCK_EVENTS: Event[] = [
     { id: 1, title: "AI & The Future of Work", description: "A seminar on the impact of AI on various industries.", date: new Date(new Date().setDate(new Date().getDate() + 2)) },
     { id: 2, title: "Quantum Computing Symposium", description: "Deep dive into quantum algorithms and hardware.", date: new Date(new Date().setDate(new Date().getDate() + 7)) },
     { id: 3, title: "Web3 Developer Meetup", description: "Networking and talks on decentralized applications.", date: new Date(new Date().setDate(new Date().getDate() + 15)) },
@@ -81,6 +82,8 @@ const MOCK_RESOURCES: Resource[] = [
   { id: 1, name: "Quantum Rig A-1", location: "Lab 3", status: "Available" },
   { id: 2, name: "Supercomputer Cygnus", location: "Data Center", status: "Unavailable" },
   { id: 3, name: "VR/AR Development Kit", location: "Innovation Hub", status: "Available" },
+  { id: 4, name: "High-Res 3D Printer", location: "Maker Space", status: "Available" },
+  { id: 5, name: "Bio-Sequencer Z-9", location: "BioLab 1", status: "Unavailable" },
 ];
 
 const MOCK_REQUESTS: ResourceRequest[] = [
@@ -96,8 +99,8 @@ export default function AdminPage() {
   const [loading, setLoading] = React.useState(true);
   const [isAuthorized, setIsAuthorized] = React.useState(false);
 
-  // Mock state for data
-  const [events, setEvents] = React.useState(MOCK_EVENTS);
+  // Using a single source of truth for mock data, managed by this component's state
+  const [events, setEvents] = React.useState<Event[]>(MOCK_EVENTS);
   const [resources, setResources] = React.useState<Resource[]>(MOCK_RESOURCES);
   const [requests, setRequests] = React.useState<ResourceRequest[]>(MOCK_REQUESTS);
 
@@ -109,6 +112,7 @@ export default function AdminPage() {
           setIsAuthorized(true);
         } else {
           setIsAuthorized(false);
+          // Non-admin users are not necessarily redirected, they see an "Access Denied" message.
         }
       } else {
         router.push("/login");

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useFormStatus } from "react-dom";
+import { useFormStatus, useActionState } from "react-dom";
 import { answerQuestionsAboutNexusFlow } from "@/ai/flows/answer-questions-about-nexusflow";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,25 +11,18 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, Bot, User, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Mock data to be passed to the AI.
-const eventDetails = `
-- Event: AI & The Future of Work, Date: 2 days from now, Description: A seminar on the impact of AI on various industries.
-- Event: Quantum Computing Symposium, Date: 7 days from now, Description: Deep dive into quantum algorithms and hardware.
-- Event: Web3 Developer Meetup, Date: 15 days from now, Description: Networking and talks on decentralized applications.
-`;
-
-const resourceStatus = `
-- Resource: Quantum Rig A-1, Status: Available, Location: Lab 3
-- Resource: Supercomputer Cygnus, Status: Unavailable, Location: Data Center
-- Resource: VR/AR Development Kit, Status: Available, Location: Innovation Hub
-- Resource: High-Res 3D Printer, Status: Available, Location: Maker Space
-- Resource: Bio-Sequencer Z-9, Status: Unavailable, Location: BioLab 1
-`;
-
 type Message = {
   role: "user" | "bot";
   content: string;
 };
+
+type Event = { id: number; title: string; description: string; date: Date };
+type Resource = { id: number; name: string; location: string; status: "Available" | "Unavailable" };
+
+type ChatBotProps = {
+    events: Event[];
+    resources: Resource[];
+}
 
 const initialState: { messages: Message[] } = {
   messages: [
@@ -40,48 +33,43 @@ const initialState: { messages: Message[] } = {
   ],
 };
 
-async function chatAction(
-  state: { messages: Message[] },
-  formData: FormData
-): Promise<{ messages: Message[] }> {
-  const question = formData.get("question") as string;
-  if (!question) {
-    return state;
-  }
+export default function ChatBot({ events, resources }: ChatBotProps) {
+    const chatAction = async (
+      state: { messages: Message[] },
+      formData: FormData
+    ): Promise<{ messages: Message[] }> => {
+        const question = formData.get("question") as string;
+        if (!question) {
+            return state;
+        }
 
-  const userMessage: Message = { role: "user", content: question };
-  const newMessages = [...state.messages, userMessage];
+        const userMessage: Message = { role: "user", content: question };
+        const newMessages = [...state.messages, userMessage];
 
-  try {
-    const aiResponse = await answerQuestionsAboutNexusFlow({
-      question,
-      eventDetails,
-      resourceStatus,
-    });
-    
-    const botMessage: Message = { role: "bot", content: aiResponse.answer };
-    return { messages: [...newMessages, botMessage] };
-  } catch (error) {
-    console.error(error);
-    const errorMessage: Message = {
-      role: "bot",
-      content: "Sorry, I encountered an error. Please try again.",
-    };
-    return { messages: [...newMessages, errorMessage] };
-  }
-}
+        // Dynamically create the context for the AI
+        const eventDetails = events.map(e => `- Event: ${e.title}, Date: ${e.date.toDateString()}, Description: ${e.description}`).join('\n');
+        const resourceStatus = resources.map(r => `- Resource: ${r.name}, Status: ${r.status}, Location: ${r.location}`).join('\n');
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" size="icon" aria-label="Send message" disabled={pending}>
-      {pending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-    </Button>
-  );
-}
+        try {
+            const aiResponse = await answerQuestionsAboutNexusFlow({
+                question,
+                eventDetails,
+                resourceStatus,
+            });
+            
+            const botMessage: Message = { role: "bot", content: aiResponse.answer };
+            return { messages: [...newMessages, botMessage] };
+        } catch (error) {
+            console.error(error);
+            const errorMessage: Message = {
+                role: "bot",
+                content: "Sorry, I encountered an error. Please try again.",
+            };
+            return { messages: [...newMessages, errorMessage] };
+        }
+    }
 
-export default function ChatBot() {
-  const [state, formAction] = React.useActionState(chatAction, initialState);
+  const [state, formAction] = useActionState(chatAction, initialState);
   const formRef = React.useRef<HTMLFormElement>(null);
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
 
@@ -93,6 +81,15 @@ export default function ChatBot() {
       });
     }
   }, [state.messages]);
+
+  function SubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" size="icon" aria-label="Send message" disabled={pending}>
+        {pending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+        </Button>
+    );
+  }
 
   return (
     <Card className="flex flex-col h-[75vh]">

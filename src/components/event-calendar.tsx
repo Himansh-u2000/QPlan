@@ -1,26 +1,20 @@
+"use client";
+
 import { CalendarIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 
-const events = [
-  {
-    date: new Date(new Date().setDate(new Date().getDate() + 2)),
-    title: "AI & The Future of Work",
-    description: "A seminar on the impact of AI on various industries.",
-  },
-  {
-    date: new Date(new Date().setDate(new Date().getDate() + 7)),
-    title: "Quantum Computing Symposium",
-    description: "Deep dive into quantum algorithms and hardware.",
-  },
-  {
-    date: new Date(new Date().setDate(new Date().getDate() + 15)),
-    title: "Web3 Developer Meetup",
-    description: "Networking and talks on decentralized applications.",
-  },
-];
+type Event = {
+  date: Date;
+  title: string;
+  description: string;
+};
 
-export default function EventCalendar() {
+type EventCalendarProps = {
+  events: Event[];
+};
+
+export default function EventCalendar({ events }: EventCalendarProps) {
   return (
     <Card>
       <CardHeader>
@@ -39,6 +33,9 @@ export default function EventCalendar() {
               day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
               day_today: "bg-accent text-accent-foreground rounded-md",
             }}
+            // You could enhance this to highlight event dates
+            // modifiers={{ event_dates: events.map(e => e.date) }}
+            // modifiersClassNames={{ event_dates: "bg-blue-200" }}
           />
         </div>
         <div className="space-y-4">

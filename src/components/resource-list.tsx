@@ -19,16 +19,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
-// This would typically come from a database or a state management solution
-const resources = [
-  { id: 1, name: "Quantum Rig A-1", status: "Available" as const, location: "Lab 3" },
-  { id: 2, name: "Supercomputer Cygnus", status: "Unavailable" as const, location: "Data Center" },
-  { id: 3, name: "VR/AR Development Kit", status: "Available" as const, location: "Innovation Hub" },
-  { id: 4, name: "High-Res 3D Printer", status: "Available" as const, location: "Maker Space" },
-  { id: 5, name: "Bio-Sequencer Z-9", status: "Unavailable" as const, location: "BioLab 1" },
-];
+type Resource = {
+  id: number;
+  name: string;
+  status: "Available" | "Unavailable";
+  location: string;
+};
 
-export default function ResourceList() {
+type ResourceListProps = {
+  resources: Resource[];
+};
+
+export default function ResourceList({ resources }: ResourceListProps) {
     const { toast } = useToast();
 
     const handleRequest = (resourceName: string) => {
