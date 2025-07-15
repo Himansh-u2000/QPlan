@@ -1,6 +1,6 @@
-# NexusFlow: Event and Resource Management
+# QPlan: Event and Resource Management
 
-NexusFlow is a modern, full-stack web application designed to streamline event and resource management. It provides a seamless interface for users to view upcoming events, check resource availability, and request access to resources. A dedicated admin panel allows for easy management of events, resources, and user requests, all powered by a real-time database and an intelligent AI assistant.
+QPlan is a modern, full-stack web application designed to streamline event and resource management. It provides a seamless interface for users to view upcoming events, check resource availability, and request access to resources. A dedicated admin panel allows for easy management of events, resources, and user requests, all powered by a real-time database and an intelligent AI assistant.
 
 ## Features
 

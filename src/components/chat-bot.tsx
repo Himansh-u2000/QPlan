@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { answerQuestionsAboutNexusFlow } from "@/ai/flows/answer-questions-about-nexusflow";
+import { answerQuestionsAboutQPlan } from "@/ai/flows/answer-questions-about-qplan";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ const initialState: { messages: Message[] } = {
   messages: [
     {
       role: "bot",
-      content: "Hello! I'm the NexusFlow assistant. Ask me about events or resources.",
+      content: "Hello! I'm the QPlan assistant. Ask me about events or resources.",
     },
   ],
 };
@@ -49,7 +49,7 @@ export default function ChatBot({ events, resources }: ChatBotProps) {
         const resourceStatus = resources.map(r => `- Resource: ${r.name}, Status: ${r.status}, Location: ${r.location}`).join('\n');
 
         try {
-            const aiResponse = await answerQuestionsAboutNexusFlow({
+            const aiResponse = await answerQuestionsAboutQPlan({
                 question,
                 eventDetails,
                 resourceStatus,

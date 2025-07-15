@@ -18,7 +18,7 @@ export default function Header() {
 
   return (
     <header className="flex items-center justify-between p-4 border-b bg-card shadow-sm">
-      <h1 className="text-2xl font-bold text-primary font-headline">NexusFlow</h1>
+      <h1 className="text-2xl font-bold text-primary font-headline">QPlan</h1>
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" asChild>
           <Link href="/admin">
