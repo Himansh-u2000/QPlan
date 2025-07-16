@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'QPlan',
+ title: 'PlanIt',
   description: 'Manage your events and resources seamlessly.',
 };
 
